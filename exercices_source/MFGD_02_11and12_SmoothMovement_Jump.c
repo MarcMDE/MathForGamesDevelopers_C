@@ -1,10 +1,10 @@
 /*******************************************************************************************
 *
-*   MFGD_01_1to10 Basic Movement and Backstabing
+*   MFGD_02_11and12 Jump, Gravity and Smooth Movement
 *
 *   This program was made by Marc Montagut - @MarcMDE
 *
-*   It is a practical implementation of the 1 to 10 "Math for Game Developers" videos
+*   It is a practical implementation of the 11 and 12 "Math for Game Developers" videos
 *   created by Jorge Rodriguez (https://www.youtube.com/playlist?list=PLW3Zl3wyJwWOpdhYedlD-yCB7WQoHf-My)
 *   
 *   Copyright (c) 2016 Marc Montagut
@@ -33,7 +33,8 @@
 #include "raylib.h"
 #include <math.h>
 
-// Functions declaration
+// I am going to create a small "useful" arithmetic operations C library.
+float FlLerp(float current, float target, float change);
 float V2Distance(Vector2 a, Vector2 b);
 float V2DotProduct(Vector2 a, Vector2 b);
 Vector2 V2Normalize(Vector2 a);
@@ -51,41 +52,24 @@ int main()
     const int screenWidth = 800;
     const int screenHeight = 450;
     
-    // Player variables.
-    float playerRadius = 25;
-    Vector2 playerPosition = {50, 140};
+    float playerRadius = 20;
+    Vector2 playerPosition = {50, screenHeight-playerRadius};
     Vector2 playerDirection = {0, 0};
-    Vector2 playerSpeed = {3, 3};
-    Color playerColor = YELLOW;
+    Vector2 playerSpeed = {5, 5};
+    Vector2 playerVelocity = {0, 0};
+    // Set acceleration duration in 1.5 secs (90frames) 
+    float playerAcceleration = playerSpeed.x/90; 
+    int playerGravityCounter = 0;
+    bool playerIsJumping = 0;
     
-    // Enemy variables.
-    float enemyRadius = 25;
-    Vector2 enemyPosition = {enemyRadius, screenHeight/2};
-    Vector2 enemyDirection = {1, 0};
-    int enemySpeedX = 2;
-    Color enemyColorOnIdle = BLUE;
-    Color enemyColorOnHit = RED;
-    Color enemyColor = enemyColorOnIdle;
-    
-    // Backstab variables.
-    int backstabDistance = playerRadius+enemyRadius+30;
-    float backstabFOV = -0.9f; // 1(front) to -1 (behind)
-    bool isPlayerOnBackstabRange = 0;
-    bool isPlayerOnBackstabPosition = 0;
-    bool isEnemyBackstabed = 0;
-    int backstabsCounter = 0;
-    Color onBackstabPositionLineColor = ORANGE;
-    Color onBackstabPositionAndRangeLineColor = GREEN;
-    Color outBackstabLineColor = RED;
-    Color backstabLineColor = outBackstabLineColor;
+    Vector2 gravity = {0, -1.5f};
     
     // Map bounds.
     Rectangle bounds = {0, 0, screenWidth, screenHeight};
-    
 
-    InitWindow(screenWidth, screenHeight, "MFGD_01_1to10 Basic Movement and Backstabing - @MarcMDE");
+    InitWindow(screenWidth, screenHeight, "MFGD_02_11and12_SmoothMovement_Jump - @MarcMDE");
     //--------------------------------------------------------------------------------------
-
+    
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
@@ -93,102 +77,73 @@ int main()
         //----------------------------------------------------------------------------------
         // TODO: Update your variables here
         //----------------------------------------------------------------------------------
-
+        
         // Player direction.
         if (IsKeyDown('A')) playerDirection.x = -1;
         else if (IsKeyDown('D')) playerDirection.x = 1;
-        else playerDirection.x = 0;
+        else 
+        {
+            playerDirection.x = 0;
+            
+            // Set smooth movement variable
+            playerVelocity.x = 0;
+        }
         
-        if (IsKeyDown('W')) playerDirection.y = -1;
-        else if (IsKeyDown('S')) playerDirection.y = 1;
-        else playerDirection.y = 0;
+        if (IsKeyDown(KEY_SPACE)&&!playerIsJumping)
+        {
+            playerDirection.y = -1;
+            
+            // Set jump variables
+            playerIsJumping = 1;
+            playerVelocity.y = playerSpeed.y;
+        }
         
         // Player movement
-        playerPosition = V2Sum(playerPosition, V2Mult(playerDirection, playerSpeed));
+        playerPosition.x += playerDirection.x*playerVelocity.x;
+        playerVelocity.x = FlLerp(playerVelocity.x, playerSpeed.x, playerAcceleration);
         
         // Player-map collision.
         if (playerPosition.x-playerRadius<=bounds.x) playerPosition.x = bounds.x+playerRadius;
         else if (playerPosition.x+playerRadius>=bounds.width) playerPosition.x = bounds.width-playerRadius;
-        
+
         if (playerPosition.y-playerRadius<=bounds.y) playerPosition.y = bounds.y+playerRadius;
-        else if (playerPosition.y+playerRadius>=bounds.height) playerPosition.y = bounds.height-playerRadius;
+        else if (playerPosition.y+playerRadius>=bounds.height) playerPosition.y = bounds.height-playerRadius;   
         
-        // Backstab logic.
-        // Check player-enemy position.
-        if (V2DotProduct(V2Normalize(enemyDirection), V2Normalize(V2Sub(playerPosition, enemyPosition)))<backstabFOV) isPlayerOnBackstabPosition = 1;
-        else isPlayerOnBackstabPosition = 0;
+        // If player is on the air (jumping)
+        if (playerIsJumping) 
+        {
+            playerPosition.y += playerDirection.y*playerVelocity.y;
+            playerVelocity.y+=gravity.y*(float)playerGravityCounter/60;
+            playerGravityCounter++;
+        }
+        
+        // When player grounds
+        if (playerIsJumping&&playerPosition.y+playerRadius>=bounds.height) 
+        {
+            playerIsJumping = false;
+            playerVelocity.y = 0;
+            playerDirection.y = 0;
+            playerGravityCounter = 0;
+        }
 
-        // Check player-enemy distance.
-        if (V2Distance(playerPosition, enemyPosition)<=backstabDistance) isPlayerOnBackstabRange = 1;
-        else isPlayerOnBackstabRange = 0;
-
-        // Set backstab line color.
-        if (isPlayerOnBackstabPosition)
-        {
-            backstabLineColor = onBackstabPositionLineColor;
-            if (isPlayerOnBackstabPosition&&isPlayerOnBackstabRange)
-            {
-                backstabLineColor = onBackstabPositionAndRangeLineColor;
-            }
-        }
-        else backstabLineColor = outBackstabLineColor;
-        
-        // Check backstab input.
-        if (IsKeyPressed(KEY_SPACE)&&isPlayerOnBackstabPosition&&isPlayerOnBackstabRange) 
-        {
-            isEnemyBackstabed = 1;
-            backstabsCounter++;
-        }
-        else isEnemyBackstabed = 0;
-        
-        // Set enemy color.
-        if (isEnemyBackstabed) enemyColor = enemyColorOnHit;
-        else enemyColor = enemyColorOnIdle;
-        
-        // Enemy direction and map collision.
-        if (enemyPosition.x-enemyRadius<=bounds.x) 
-        {
-            enemyPosition.x = bounds.x+enemyRadius;
-            enemyDirection.x = 1;
-        }
-        else if (enemyPosition.x+enemyRadius>=bounds.width) 
-        {
-            enemyPosition.x = bounds.width-playerRadius;
-            enemyDirection.x = -1;
-        }
-        
-        // Enemy movement.
-        if (!isEnemyBackstabed) enemyPosition = V2Sum(enemyPosition, V2IntMult(enemyDirection, enemySpeedX));
-        
         // Draw
         //----------------------------------------------------------------------------------
         BeginDrawing();
 
             ClearBackground(RAYWHITE);
             
-            // Draw backstab position and distance checker line
-            DrawLineV(playerPosition, enemyPosition, backstabLineColor);
-            
-            // Draw enemy.
-            DrawCircleV(enemyPosition, enemyRadius, enemyColor);
-            
-            // Draw player.
-            DrawCircleV(playerPosition, playerRadius, playerColor);
+            // Draw Player
+            DrawCircleV(playerPosition, playerRadius, YELLOW); 
             
             // Draw instructions.
             DrawText("MOVE THE PLAYER WITH W,A,S,D", 10, 5, 20, LIGHTGRAY);
-            DrawText("CHASE THE ENEMY (BLUE), AND PRESS SPACE", 10, 25, 20, LIGHTGRAY);
-            DrawText("WHEN THE BACKSTAB LINE BECOMES GREEN.", 10, 45, 20, LIGHTGRAY);
-            DrawText("REMEMBER: YOU MUST BE BEHIND THE ENEMY!", 10, 70, 20, LIGHTGRAY);
-            
-            // Draw backstabs counter.
-            DrawText(FormatText("%i", backstabsCounter), screenWidth-50, 10, 40, GRAY);
+            DrawText("JUMP WITH SPACE", 10, 25, 20, LIGHTGRAY);
             
             // Draw Exit
-            DrawText("Esc - EXIT", screenWidth-125, screenHeight-25, 20, LIGHTGRAY);
+            DrawText("Esc - EXIT", screenWidth-125, 5, 20, LIGHTGRAY);
             
             // Draw MarcMDE
-            DrawText("Created by @MarcMDE", 20, screenHeight-25, 20, GRAY);
+            DrawText("Created by @MarcMDE", 10, 50, 20, GRAY);
 
         EndDrawing();
         //----------------------------------------------------------------------------------
@@ -200,6 +155,20 @@ int main()
     //--------------------------------------------------------------------------------------
 
     return 0;
+}
+
+// Lerp btw 2 float values
+float FlLerp(float current, float target, float change)
+{
+    if (target-current>change) 
+    {
+        if (current+change<target) return current+change;
+    }
+    if (target-current<change) 
+    {
+        if (current-change>target) return current-change;
+    }
+    return target;
 }
 
 // Returns distance between Vectors2
