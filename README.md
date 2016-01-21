@@ -12,5 +12,5 @@ MFGD_X Folder and open the .exe (You basically need the .exe and openAl32.dll)
 
 # Modifying/Compiling the source code
 All the exemples were created using raylib. You can download it from www.raylib.com
-You will find all the information on wwww.raylib.com 
+You will find all the information on www.raylib.com 
 (Be sure to check http://www.raylib.com/examples.htm)
