@@ -10,6 +10,8 @@ since I need to improve this aspect of my formation.
 If you want to play the compiled example, you just need to download the
 MFGD_X Folder and open the .exe (You basically need the .exe and openAl32.dll)
 
+All the examples will be soon ready to play in your browser!!! =D
+
 # Modifying/Compiling the source code
 All the exemples were created using raylib. You can download it from www.raylib.com
 You will find all the information on www.raylib.com 
