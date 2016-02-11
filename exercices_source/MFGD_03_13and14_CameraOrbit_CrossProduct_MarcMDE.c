@@ -82,12 +82,13 @@ float cameraDistance = 5.5f;
 Vector3 cameraOffset = {0, 2+0.75f, 0};
 float mouseSensivity = 0.01f;
 
+const int screenWidth = 800;
+const int screenHeight = 450;
+
 int main()
 {
     // Initialization
     //--------------------------------------------------------------------------------------
-    int screenWidth = 800;
-    int screenHeight = 450;
 
     InitWindow(screenWidth, screenHeight, "MFGD_03_13and14_CameraOrbit_CrossProduct - @MarcMDE");
 
@@ -121,9 +122,9 @@ int main()
                 
             End3dMode();
             
-                DrawText("Move with WASD", 10, 10, 20, DARKGRAY);
-                DrawText("Move mouse to look around", 10, 30, 20, DARKGRAY);
-                DrawText("Created by @MarcMDE", 20, screenHeight-25, 20, GRAY);
+                DrawText("Move with WASD", 10, 10, 20, GRAY);
+                DrawText("Move mouse to look around", 10, 30, 20, GRAY);
+                DrawText("Created by @MarcMDE", 20, screenHeight-25, 20, DARKGRAY);
 
         EndDrawing();
         //----------------------------------------------------------------------------------
@@ -165,6 +166,17 @@ void UpdateCameraPlayerMovement()
     else if (cameraEulerAngle.pitch<-0.7f) cameraEulerAngle.pitch = -0.7f;
     mouseLastPosition = mouseCurrentPosition;
     printf("%.3f\n", cameraEulerAngle.pitch);
+    
+    if (mouseCurrentPosition.x<0||mouseCurrentPosition.x>screenWidth) 
+    {
+        SetMousePosition((Vector2){screenWidth/2, mouseCurrentPosition.y});
+        mouseLastPosition = GetMousePosition();  
+    }
+    if (mouseCurrentPosition.y<0 || mouseCurrentPosition.y>screenHeight)
+    {
+        SetMousePosition((Vector2){mouseCurrentPosition.x, screenHeight/2});
+        mouseLastPosition = GetMousePosition();
+    }
     
     camera.position = Vector3Sub(Vector3Add(playerPosition, cameraOffset), Vector3FloatProduct(EulerAngleToVector3(cameraEulerAngle), cameraDistance));
 }
